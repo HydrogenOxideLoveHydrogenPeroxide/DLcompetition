@@ -1,65 +1,39 @@
-# 模型训练部分
-from transformers import BertTokenizer, BertForSequenceClassification, Trainer, TrainingArguments
-from dataloader import TextDataset,TrainDataPath,TestDataPath
-from torch.utils.data import Dataset, DataLoader
 import torch
+import torch.optim as optim
+from torch.utils.data import DataLoader
+from model import TextClassifier
+from dataloader import get_data_loader
+import torch.nn as nn
+import torch.nn.functional as F
 
-# 训练参数和配置
-batch_size = 8
-max_length = 512
-num_epochs = 3
-learning_rate = 2e-5
-warmup_steps = 500
-weight_decay = 0.01
 
-# 加载预训练的BERT模型和tokenizer
-model_name = 'bert-base-uncased'
-tokenizer = BertTokenizer.from_pretrained(model_name)
-model = BertForSequenceClassification.from_pretrained(model_name, num_labels=2)
+# 超参数设置
+VOCAB_SIZE = 10000  # 假设词汇表大小为10000
+EMBEDDING_DIM = 128
+HIDDEN_DIM = 256
+OUTPUT_DIM = 2  # 两个类别：人类和大模型生成
+BATCH_SIZE = 32
+NUM_EPOCHS = 10
+LEARNING_RATE = 0.001
 
-# 数据加载
-train_dataset = TextDataset(TrainDataPath, tokenizer)
-test_dataset = TextDataset(TestDataPath, tokenizer)
+# 加载数据
+train_loader, test_loader = get_data_loader(BATCH_SIZE)
 
-# 数据预处理和封装为DataLoader
-def collate_fn(batch):
-    texts = [item[0] for item in batch]
-    labels = torch.tensor([item[1] for item in batch])
-    inputs = tokenizer(texts, padding='max_length', truncation=True, max_length=max_length, return_tensors='pt')
-    return {'input_ids': inputs['input_ids'], 'attention_mask': inputs['attention_mask'], 'labels': labels}
+# 初始化模型、损失函数和优化器
+model = TextClassifier(VOCAB_SIZE, EMBEDDING_DIM, HIDDEN_DIM, OUTPUT_DIM)
+criterion = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
-test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_fn)
-
-# 训练参数
-training_args = TrainingArguments(
-    output_dir='./results',
-    num_train_epochs=num_epochs,
-    per_device_train_batch_size=batch_size,
-    per_device_eval_batch_size=batch_size,
-    warmup_steps=warmup_steps,
-    weight_decay=weight_decay,
-    logging_dir='./logs',
-    logging_steps=10,
-    evaluation_strategy='epoch',
-    save_strategy='epoch',
-    learning_rate=learning_rate,
-)
-
-# 使用Trainer进行训练
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_dataset,
-    eval_dataset=test_dataset,
-    data_collator=collate_fn,
-)
-
-# 开始训练
-trainer.train()
+# 训练循环
+model.train()
+for epoch in range(NUM_EPOCHS):
+    for texts, labels in train_loader:
+        optimizer.zero_grad()
+        predictions = model(texts)
+        loss = criterion(predictions, labels)
+        loss.backward()
+        optimizer.step()
+    print(f'Epoch: {epoch + 1}, Loss: {loss.item()}')
 
 # 保存模型
-model.save_pretrained('./saved_model')
-tokenizer.save_pretrained('./saved_model')
-
-print("训练完成，模型已保存")
+torch.save(model.state_dict(), 'model.pth')
