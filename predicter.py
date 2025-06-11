@@ -1,0 +1,1 @@
+#TestDataPath=DataDir/'test_521'/'test.jsonl'#测试集路径    test_dataset=TextDataset(TestDataPath)
