@@ -3,11 +3,9 @@ from pathlib import Path
 import numpy as np
 import torch
 from torch.utils.data import DataLoader, Dataset, random_split
-from transformers import BertModel,BertTokenizer
 
 DataDir=Path(os.getcwd())/'data'#数据目录
 TrainDataPath=DataDir/'train'/'train_cleaned.jsonl'#训练集路径
-BERT_PATH = '/my-bert-base-uncased'
 
 class TextDataset(Dataset):
     def __init__(self,path):
