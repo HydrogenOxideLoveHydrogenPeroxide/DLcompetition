@@ -113,9 +113,9 @@ if __name__ == "__main__":
             'epoch':EPOCHS,
             'batch_size':BATCH_SIZE,
             'lr':LR,
-            'max_len':MAX_LEN
-            'seed':seed
-        }
+            'max_len':MAX_LEN,
+            'seed':SEED
+        },
         'result':[precision,recall,f1]
     }
     log_result(train_log)
