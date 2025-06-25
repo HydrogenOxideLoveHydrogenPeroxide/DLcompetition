@@ -2,34 +2,24 @@ import json,os
 from pathlib import Path
 import numpy as np
 import torch
-import random
 from torch.utils.data import DataLoader, Dataset, random_split
 
 DataDir=Path(os.getcwd())/'data'#数据目录
 TrainDataPath=DataDir/'train'/'train_cleaned.jsonl'#训练集路径
 
 class TextDataset(Dataset):
-    def __init__(self,path,p=1):
-        self.p=p
+    def __init__(self,path):
         self.texts,self.labels=self.__get_data(path)
-       
         
     def __get_data(self,path)->np.array:
         texts = []
         labels = []
+    
         with open(path, 'r', encoding='utf-8') as f:
             for line in f:
-                data = json.loads(line)
-                label = data['label']
-                # 如果 label 为 1，则以概率 p 保留该样本
-                if label == 1:
-                    if random.random() < self.p:
-                        texts.append(data['text'])
-                        labels.append(label)
-                else:
-                    texts.append(data['text'])
-                    labels.append(label)
-        return np.array(texts), np.array(labels)
+                texts.append(json.loads(line)['text'])
+                labels.append(json.loads(line)['label'])
+        return np.array(texts),np.array(labels)
            
     def __len__(self):
         return len(self.texts)
